@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis
+    restart: always
+  
+  webapp:
+    restart: always
+    build: 
+      context: ./webapp
+    ports: 
+      - "8000:8000"
+    command: [ "python3", "./src/manage.py", "runserver", "0.0.0.0:8000"]
+  
+  worker:
+    restart: always
+    build: 
+      context: ./webapp
+    volumes: 
+      - ./cats:/app/src/cats
+    command: ['celery', '--workdir=./src', '-A', 'proj', 'worker' ]
+  
+  flower:
+    image: mher/flower
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh
+    command: ['/wait-for-it.sh']
+  
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+  
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+volumes:
+  grafana-storage:
